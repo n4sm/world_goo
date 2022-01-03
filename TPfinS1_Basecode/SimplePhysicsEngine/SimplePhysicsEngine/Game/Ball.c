@@ -3,7 +3,7 @@
 
 Ball Ball_Set(Vec2 position)
 {
-    Ball ball = { 0 };
+    Ball ball = { 0 };//yes
 
     ball.position = position;
     ball.velocity = Vec2_Set(0.f, 0.f);
