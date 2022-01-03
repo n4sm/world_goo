@@ -31,7 +31,7 @@ typedef struct Spring_s
 } Spring;
 
 /// @brief Structure représentant une balle. Elle peut être liée à d'autres balle avec des ressorts.
-struct Ball_s
+typedef struct Ball_s
 {
     /// @brief Vecteur position de la balle.
     Vec2 position;
@@ -50,7 +50,7 @@ struct Ball_s
 
     /// @brief Tableau contenant les ressorts attachés à la balle.
     Spring springs[MAX_EDGES];
-};
+} ball_t;
 
 /// @brief Initialise une balle et permet de définir sa position.
 /// @param[in] position le vecteur position de la balle.

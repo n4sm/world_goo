@@ -6,7 +6,22 @@
 #include "Game/Ball.h"
 #include "Game/Camera.h"
 #include "Game/Scene.h"
-//test
+
+Vec2 forces_appliques(ball_t* ball)
+{
+    return Vec2_Set(-ball->friction * ball->velocity.x, (-ball->friction * ball->velocity.y) + (ball->mass * -9.81f));
+}
+
+Vec2 acceleration(ball_t* ball)
+{
+    return Vec2_Scale(forces_appliques(ball), 1 / ball->mass);
+}
+
+// void update_vitesse(struct ball_s* ball)
+// {
+//     ball.velocity =  + acceleration(ball);
+// }
+
 int main(int argc, char *argv[])
 {
     Window *window = NULL;
@@ -26,6 +41,8 @@ int main(int argc, char *argv[])
 
     // Lance le temps global du jeu
     Timer_Start(g_time);
+
+    ball_t ball = {.friction = 1, .mass = 0.5, .position.x = 0, .position.y = 0, .velocity.x = 0, .velocity.y = 0, .springCount = 0, .springs = NULL};
 
     bool quitGame = false;
     while (!quitGame)
