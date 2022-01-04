@@ -79,9 +79,9 @@ $(DEXE): $(DOBJ) $(HDR)
 clean:
 	-rm $(OBJ) $(DOBJ)  2>/dev/null || true
 
-	
-	
-	
+run: $(EXE)
+	./$(EXE) || -rm $(OBJ) $(DOBJ)  2>/dev/null || true
+
 # memo internal macro
 # $@ --> The file name of the target of the rule.
 # $^ --> he names of all the prerequisites, with spaces between them.

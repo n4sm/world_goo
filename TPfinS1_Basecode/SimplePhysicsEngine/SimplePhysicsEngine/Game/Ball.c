@@ -78,12 +78,26 @@ Vec2 Ball_GetPosition(Ball *ball)
 
 void Ball_UpdateVelocity(Ball *ball, float timeStep)
 {
-    // TODO : Remplacez par votre fonction
+    Vec2 spring = {0};
+    for (int i = 0; i < ball->springCount; ++i) {
+        spring = Vec2_Add(spring, Vec2_Scale(Vec2_Normalize(Vec2_Sub(ball->springs[i].other->position, ball->position)), 200 * (Vec2_Distance(ball->springs[i].other->position, ball->position) - ball->springs[i].length)));
+    }
+
+    Vec2 sum = Vec2_Set(((-ball->friction * ball->velocity.x) + spring.x) / ball->mass, (spring.y + (-ball->friction * ball->velocity.y) + (ball->mass * -9.81f)) / ball->mass);
+    Vec2 a = sum;
+
+    ball->velocity.x += a.x * timeStep;
+    ball->velocity.y += a.y * timeStep; 
 }
 
 void Ball_UpdatePosition(Ball *ball, float timeStep)
 {
-    // TODO : Remplacez par votre fonction
+    if (ball->position.y + ball->velocity.y * timeStep <= 0) {
+        ball->velocity.y = Vec2_Scale(ball->velocity, -0.8f).y;
+    }
+
+    ball->position.x += ball->velocity.x * timeStep;
+    ball->position.y += ball->velocity.y * timeStep;
 }
 
 void Ball_Render(Ball *ball, Scene *scene)
