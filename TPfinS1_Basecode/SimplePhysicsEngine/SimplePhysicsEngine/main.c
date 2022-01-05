@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     while (!quitGame)
     {
         // Crée la scène
-        scene = Scene_New(renderer);
+        scene = Scene_New(renderer, 10);
         if (!scene) goto ERROR_LABEL;
 
         // Boucle de rendu

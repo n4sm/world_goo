@@ -6,7 +6,7 @@
 
 int Scene_DoubleCapacity(Scene *scene);
 
-Scene *Scene_New(Renderer *renderer)
+Scene *Scene_New(Renderer *renderer, int max_connections)
 {
     Scene *scene = NULL;
     int capacity = 1 << 10;
@@ -29,6 +29,8 @@ Scene *Scene_New(Renderer *renderer)
     scene->m_balls = (Ball *)calloc(capacity, sizeof(Ball));
     if (!scene->m_balls) goto ERROR_LABEL;
 
+    scene->m_queries = calloc(max_connections, sizeof(BallQuery));
+
     scene->m_renderer = renderer;
     scene->m_ballCount = 0;
     scene->m_ballCapacity = capacity;
@@ -38,9 +40,14 @@ Scene *Scene_New(Renderer *renderer)
     Ball *ball1 = Scene_CreateBall(scene, Vec2_Set(-0.75f, 0.0f));
     Ball *ball2 = Scene_CreateBall(scene, Vec2_Set(+0.75f, 0.0f));
     Ball *ball3 = Scene_CreateBall(scene, Vec2_Set(0.0f, 1.299f));
+    Ball *ball4= Scene_CreateBall(scene, Vec2_Set(2.77f, 1.299f));
+    Ball *ball5= Scene_CreateBall(scene, Vec2_Set(3.77f, 2.299f));
     Ball_Connect(ball1, ball2, 1.5f);
     Ball_Connect(ball1, ball3, 1.5f);
     Ball_Connect(ball2, ball3, 1.5f);
+    Ball_Connect(ball4, ball3, 1.5f);
+    Ball_Connect(ball5, ball3, 1.5f);
+    Ball_Connect(ball4, ball5, 1.5f);
 
     return scene;
 
@@ -218,6 +225,10 @@ void BubbleSortBalls(Ball* balls, int ballCount, Vec2 pos)
     BubbleSortBalls(balls, ballCount - 1, pos);
 }
 
+_Bool isValidLength(Vec2 v1, Vec2 v2) {
+    return Vec2_Distance(v1, v2) < 7.0f ? true : false;
+}
+
 int Scene_GetNearestBalls(Scene *scene, Vec2 position, BallQuery *queries, int queryCount)
 {
     Ball* saved = calloc(Scene_GetBallCount(scene), sizeof(Ball));
@@ -282,14 +293,13 @@ Spring* InSpring(Scene* scene, Vec2 pos)
 int connect_n(Scene* scene, int n, int max_length) {
     int ballCount = Scene_GetBallCount(scene);
     Ball* balls = Scene_GetBalls(scene);
-    BallQuery* queries = calloc(n, sizeof(BallQuery) * n);
     _Bool is_connected = false;
 
     if (n > ballCount || n < 0 || n > ballCount) {
         return EXIT_FAILURE;
     }
 
-    if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, queries, n)) {
+    if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, n)) {
         perror("failed to connect balls :(");
         exit(EXIT_FAILURE);
     }
@@ -300,17 +310,25 @@ int connect_n(Scene* scene, int n, int max_length) {
 
     for (size_t i = 0; i < n; i++) {
         print_ball(ball_created);
-        print_ball(queries[i].ball);
-        if (queries[i].distance < max_length) {
-            Ball_Connect(ball_created, queries[i].ball, queries[i].distance);
+        print_ball(scene->m_queries[i].ball);
+        if (scene->m_queries[i].distance < max_length) {
+            Ball_Connect(ball_created, scene->m_queries[i].ball, scene->m_queries[i].distance / 2);
             is_connected = true;
         } else if (!is_connected) {
             Scene_RemoveBall(scene, ball_created);
         }
     }
 
-    free(queries);
     return EXIT_SUCCESS;
+}
+
+int ValidBalls(BallQuery* queries, Vec2 pos, int n)
+{
+    for (size_t i = 0; i < n; i++) {
+        if (!queries[i].ball || !isValidLength(pos, queries[i].ball->position)) return i;
+    }
+
+    return n;
 }
 
 void Scene_UpdateGame(Scene *scene)
@@ -341,9 +359,15 @@ void Scene_UpdateGame(Scene *scene)
         return;
     }
 
+    memset(scene->m_queries, 0x0, sizeof(BallQuery) * 10);
+
     // click detected
     if (scene->m_input->mouseLPressed && scene->m_mousePos.y > 0.0f) {
-        connect_n(scene, 3, 5.0f);
+        connect_n(scene, 3, 8.0f);
+    } else if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, 3)) {
+        exit(-1);
+    } else {
+        scene->m_validCount = ValidBalls(scene->m_queries, scene->m_mousePos, 10);
     }
 }
 
@@ -429,6 +453,7 @@ void Scene_Render(Scene *scene)
         // Dessine les ressorts inactifs
         int validCount = scene->m_validCount;
         BallQuery *queries = scene->m_queries;
+        printf("valdCount: %d\n", scene->m_validCount);
         for (int i = 0; i < validCount; ++i)
         {
             Vec2 start = Scene_GetMousePosition(scene);
