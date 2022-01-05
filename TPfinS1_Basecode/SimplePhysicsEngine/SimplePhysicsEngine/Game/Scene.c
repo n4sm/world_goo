@@ -260,6 +260,40 @@ void print_ball(Ball* ball) {
                     , ball->position.x, ball->position.y, ball->velocity.x, ball->velocity.y, ball->friction, ball->mass);
 }
 
+int connect_n(Scene* scene, int n, int max_length) {
+    int ballCount = Scene_GetBallCount(scene);
+    Ball* balls = Scene_GetBalls(scene);
+    BallQuery* queries = calloc(n, sizeof(BallQuery) * n);
+    _Bool is_connected = false;
+
+    if (n > ballCount || n < 0 || n > ballCount) {
+        return EXIT_FAILURE;
+    }
+
+    if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, queries, n)) {
+        perror("failed to connect balls :(");
+        exit(EXIT_FAILURE);
+    }
+
+    Ball *ball_created = Scene_CreateBall(scene, scene->m_mousePos);
+
+    puts("=======");
+
+    for (size_t i = 0; i < n; i++) {
+        print_ball(ball_created);
+        print_ball(queries[i].ball);
+        if (queries[i].distance < max_length) {
+            Ball_Connect(ball_created, queries[i].ball, queries[i].distance);
+            is_connected = true;
+        } else if (!is_connected) {
+            Scene_RemoveBall(scene, ball_created);
+        }
+    }
+
+    free(queries);
+    return EXIT_SUCCESS;
+}
+
 void Scene_UpdateGame(Scene *scene)
 {
     Input *input = Scene_GetInput(scene);
@@ -289,26 +323,8 @@ void Scene_UpdateGame(Scene *scene)
     }
 
     // click detected
-    if (scene->m_input->mouseRPressed || scene->m_input->mouseLPressed) {
-        if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, 3)) {
-            perror("failed to connect balls :(");
-            exit(EXIT_FAILURE);
-        }
-
-        Ball *ball_created = Scene_CreateBall(scene, scene->m_mousePos);
-
-        // for (int i = 0; i < scene->m_ballCount-1; ++i) {
-        //     printf("distance: %f, %p\n", scene->m_queries[i].distance, scene->m_queries[i].ball);
-        //     print_ball(scene->m_queries[i].ball);
-        // }
-
-        puts("=======");
-
-        for (size_t i = 0; i < 3; i++) {
-            print_ball(ball_created);
-            print_ball(scene->m_queries[i].ball);
-            Ball_Connect(ball_created, scene->m_queries[i].ball, scene->m_queries[i].distance);
-        }
+    if (scene->m_input->mouseLPressed && scene->m_mousePos.y > 0.0f) {
+        connect_n(scene, 3, 5.0f);
     }
 }
 
