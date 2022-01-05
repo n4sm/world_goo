@@ -196,6 +196,11 @@ BallQuery Scene_GetNearestBall(Scene *scene, Vec2 position)
     return query;
 }
 
+float scalar_product(Vec2 a, Vec2 b)
+{
+    return a.x * b.x + a.y * b.y;
+}
+
 void BubbleSortBalls(Ball* balls, int ballCount, Vec2 pos)
 {
     if (1 == ballCount) {
@@ -258,6 +263,20 @@ void Scene_FixedUpdate(Scene *scene, float timeStep)
 void print_ball(Ball* ball) {
     fprintf(stdout, "ball.position.x / y: %f / %f, ball.velocity.x / y: %f / %f, ball.friction: %f, mass: %f\n"
                     , ball->position.x, ball->position.y, ball->velocity.x, ball->velocity.y, ball->friction, ball->mass);
+}
+
+Spring* InSpring(Scene* scene, Vec2 pos)
+{
+    BallQuery query = {0};
+    Scene_GetNearestBalls(scene, pos, &query, 1);
+
+    for (size_t i = 0; i < query.ball->springCount; i++) {
+        if (!scalar_product(Vec2_Sub(pos, query.ball->springs[i].other->position), query.ball->position)) {
+            return &query.ball->springs[i];
+        }
+    }
+
+    return (void* )-1;
 }
 
 int connect_n(Scene* scene, int n, int max_length) {
@@ -345,6 +364,8 @@ void Scene_Update(Scene *scene)
 
     // Met à jour la caméra (déplacement)
     Camera_Update(scene->m_camera);
+
+    Scene_Render(scene);
 
     // Met à jour le jeu
     Scene_UpdateGame(scene);

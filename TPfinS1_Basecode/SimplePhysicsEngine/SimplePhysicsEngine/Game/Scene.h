@@ -52,7 +52,7 @@ typedef struct Scene_s
     Vec2 m_mousePos;
 
     /// @brief Dernières requêtes effectuées sur les balles.
-    BallQuery m_queries[MAX_QUERY_COUNT];
+    BallQuery* m_queries;
 
     /// @brief Nombre de requêtes valides.
     int m_validCount;
@@ -62,6 +62,9 @@ typedef struct Scene_s
 
     /// @brief Accumulateur pour le pas de temps fixe.
     float m_accu;
+
+    /// @brief Nombre de balles maximum
+    int m_maxBalls;
 } Scene;
 
 /// @brief Construit une scène.
