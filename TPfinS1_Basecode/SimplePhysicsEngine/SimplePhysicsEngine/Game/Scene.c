@@ -178,22 +178,65 @@ Ball *Scene_GetBalls(Scene *scene)
 
 BallQuery Scene_GetNearestBall(Scene *scene, Vec2 position)
 {
-    //int ballCount = Scene_GetBallCount(scene);
-    //Ball *balls = Scene_GetBalls(scene);
     BallQuery query = { 0 };
+    Ball *balls = Scene_GetBalls(scene); 
+    int ballCount = Scene_GetBallCount(scene);
 
-    // TODO - Complétez la fonction
+    // query.ball is already NULL
+    if (!ballCount) return query;
+
+    int min = Vec2_Distance(balls[0].position, position);
+    for (size_t i = 0; i < ballCount; i++) {
+        if (Vec2_Distance(balls[i].position, position) < min) {
+            query.ball = &balls[i];
+            query.distance = Vec2_Distance(balls[i].position, position);
+        }
+    }
 
     return query;
 }
 
+void BubbleSortBalls(Ball* balls, int ballCount, Vec2 pos)
+{
+    if (1 == ballCount) {
+        return;
+    }
+
+    for (size_t i = 0; i < ballCount - 1; i++) {
+        if (Vec2_Distance(balls[i].position, pos) > Vec2_Distance(balls[i+1].position, pos)) {
+            Ball saved = balls[i];
+            balls[i] = balls[i+1];
+            balls[i+1] = saved;
+        }
+    }
+
+    BubbleSortBalls(balls, ballCount - 1, pos);
+}
+
 int Scene_GetNearestBalls(Scene *scene, Vec2 position, BallQuery *queries, int queryCount)
 {
-    //int ballCount = Scene_GetBallCount(scene);
-    //Ball *balls = Scene_GetBalls(scene);
+    Ball* saved = calloc(Scene_GetBallCount(scene), sizeof(Ball));
+    Ball *balls = Scene_GetBalls(scene);
+    int ballCount = Scene_GetBallCount(scene);
 
-    // TODO - Complétez la fonction
+    if (!ballCount) return EXIT_FAILURE;
 
+    memcpy(saved, balls, ballCount * sizeof(Ball));
+    BubbleSortBalls(saved, ballCount, position);
+
+    for (int i = 0; i < queryCount; i++) {
+        for (int k = 0; k < ballCount; ++k) {
+            printf("%f == %f, %f == %f\n", saved[i].position.x, balls[k].position.x, saved[i].position.y, balls[k].position.y);
+            if (saved[i].position.x == balls[k].position.x && saved[i].position.y == balls[k].position.y) {
+                queries[i].ball = &balls[k];
+                queries[i].distance = Vec2_Distance(queries[i].ball->position, position);                
+            }
+        }
+
+        printf("%p\n", queries[i].ball);
+    }
+
+    free(saved);
     return EXIT_SUCCESS;
 }
 
@@ -210,6 +253,11 @@ void Scene_FixedUpdate(Scene *scene, float timeStep)
     {
         Ball_UpdatePosition(&balls[i], timeStep);
     }
+}
+
+void print_ball(Ball* ball) {
+    fprintf(stdout, "ball.position.x / y: %f / %f, ball.velocity.x / y: %f / %f, ball.friction: %f, mass: %f\n"
+                    , ball->position.x, ball->position.y, ball->velocity.x, ball->velocity.y, ball->friction, ball->mass);
 }
 
 void Scene_UpdateGame(Scene *scene)
@@ -240,8 +288,28 @@ void Scene_UpdateGame(Scene *scene)
         return;
     }
 
-    // TODO
-    // Ajoutez ou supprimez des balles en fonction des actions du joueur
+    // click detected
+    if (scene->m_input->mouseRPressed || scene->m_input->mouseLPressed) {
+        if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, 3)) {
+            perror("failed to connect balls :(");
+            exit(EXIT_FAILURE);
+        }
+
+        Ball *ball_created = Scene_CreateBall(scene, scene->m_mousePos);
+
+        // for (int i = 0; i < scene->m_ballCount-1; ++i) {
+        //     printf("distance: %f, %p\n", scene->m_queries[i].distance, scene->m_queries[i].ball);
+        //     print_ball(scene->m_queries[i].ball);
+        // }
+
+        puts("=======");
+
+        for (size_t i = 0; i < 3; i++) {
+            print_ball(ball_created);
+            print_ball(scene->m_queries[i].ball);
+            Ball_Connect(ball_created, scene->m_queries[i].ball, scene->m_queries[i].distance);
+        }
+    }
 }
 
 void Scene_Update(Scene *scene)

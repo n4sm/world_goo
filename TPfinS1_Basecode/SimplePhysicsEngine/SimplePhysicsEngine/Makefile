@@ -2,7 +2,7 @@
 ﻿MAKEFILE = gnu
 CC = gcc
 #debug options
-DOPT = -Wall -g
+DOPT = -Wall -g3
 #release options
 ROPT = -Wall -o3 -D NDEBUG
 #opt will get the release/debug config for the compiler
