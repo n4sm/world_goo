@@ -93,7 +93,7 @@ void Ball_UpdateVelocity(Ball *ball, float timeStep)
 void Ball_UpdatePosition(Ball *ball, float timeStep)
 {
     if (ball->position.y + ball->velocity.y * timeStep <= 0) {
-        ball->velocity.y = Vec2_Scale(ball->velocity, -0.8f).y;
+        ball->velocity.y = Vec2_Scale(ball->velocity, -0.3f).y;
     }
 
     ball->position.x += ball->velocity.x * timeStep;

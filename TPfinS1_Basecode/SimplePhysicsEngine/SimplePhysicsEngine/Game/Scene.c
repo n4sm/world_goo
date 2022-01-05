@@ -35,6 +35,7 @@ Scene *Scene_New(Renderer *renderer, int max_connections)
     scene->m_ballCount = 0;
     scene->m_ballCapacity = capacity;
     scene->m_timeStep = 1.0f / 100.f;
+    scene->m_maxBalls = max_connections;
 
     // Création d'une scène minimale avec trois balles reliées
     Ball *ball1 = Scene_CreateBall(scene, Vec2_Set(-0.75f, 0.0f));
@@ -252,8 +253,23 @@ int Scene_GetNearestBalls(Scene *scene, Vec2 position, BallQuery *queries, int q
         printf("%p\n", queries[i].ball);
     }
 
+    scene->m_validCount = ValidBalls(scene->m_queries, scene->m_mousePos, 10);
+
     free(saved);
     return EXIT_SUCCESS;
+}
+
+int mayDeleteBall(Scene* scene, Vec2 pos)
+{
+    if (EXIT_FAILURE == Scene_GetNearestBalls(scene, pos, scene->m_queries, 1)) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (Vec2_Distance(scene->m_queries[0].ball->position, pos) < 0.2f) {
+        for (int i = 0; i < scene->m_queries[0].ball->springCount; ++i) Ball_Deconnect(scene->m_queries[0].ball, scene->m_queries[0].ball->springs[i].other);
+        Scene_RemoveBall(scene, scene->m_queries[0].ball);
+    }
+    
 }
 
 void Scene_FixedUpdate(Scene *scene, float timeStep)
@@ -312,7 +328,7 @@ int connect_n(Scene* scene, int n, int max_length) {
         print_ball(ball_created);
         print_ball(scene->m_queries[i].ball);
         if (scene->m_queries[i].distance < max_length) {
-            Ball_Connect(ball_created, scene->m_queries[i].ball, scene->m_queries[i].distance / 2);
+            Ball_Connect(ball_created, scene->m_queries[i].ball, 2.5);
             is_connected = true;
         } else if (!is_connected) {
             Scene_RemoveBall(scene, ball_created);
@@ -359,15 +375,15 @@ void Scene_UpdateGame(Scene *scene)
         return;
     }
 
-    memset(scene->m_queries, 0x0, sizeof(BallQuery) * 10);
+    memset(scene->m_queries, 0x0, sizeof(BallQuery) * scene->m_maxBalls);
 
     // click detected
     if (scene->m_input->mouseLPressed && scene->m_mousePos.y > 0.0f) {
-        connect_n(scene, 3, 8.0f);
+        connect_n(scene, 4, 3.0f);
+    } else if (scene->m_input->mouseDPressed) {
+        mayDeleteBall(scene, scene->m_mousePos);
     } else if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, 3)) {
         exit(-1);
-    } else {
-        scene->m_validCount = ValidBalls(scene->m_queries, scene->m_mousePos, 10);
     }
 }
 

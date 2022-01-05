@@ -57,6 +57,10 @@ void Input_Update(Input *input)
             case SDL_SCANCODE_RETURN:
                 input->restartPressed = true;
                 break;
+
+            case SDL_SCANCODE_D:
+                input->mouseDPressed = true;
+                break;
             default:
                 break;
             }
@@ -68,8 +72,12 @@ void Input_Update(Input *input)
 
             switch (evt.key.keysym.scancode)
             {
-            default:
-                break;
+                case SDL_SCANCODE_D:
+                    input->mouseDPressed = false;
+                    break;
+
+                default:
+                    break;
             }
             break;
 
