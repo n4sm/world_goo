@@ -65,12 +65,15 @@ typedef struct Scene_s
 
     /// @brief Nombre de balles maximum
     int m_maxBalls;
+
+    /// Distance maximale
+    float m_maxDistance;
 } Scene;
 
 /// @brief Construit une scène.
 /// @param[in] renderer le moteur de rendu.
 /// @return La scène créée. Renvoie NULL en cas d'erreur.
-Scene *Scene_New(Renderer *renderern, int max_connections);
+Scene *Scene_New(Renderer *renderer, int max_connections, float maxDistance);
 
 /// @brief Détruit une scène précédemment construite avec Scene_New().
 /// Le pointeur vers la scène doit être affecté à NULL après l'appel à cette fonction.
