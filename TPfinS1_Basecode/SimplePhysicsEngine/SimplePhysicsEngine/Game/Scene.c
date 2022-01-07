@@ -287,6 +287,8 @@ int mayDeleteBall(Scene* scene, Vec2 pos)
         for (int i = 0; i < scene->m_queries[0].ball->springCount; ++i) Ball_Deconnect(scene->m_queries[0].ball, scene->m_queries[0].ball->springs[i].other);
         Scene_RemoveBall(scene, scene->m_queries[0].ball);
     }
+
+    return 0;
 }
 
 /// checks if we have to move or not the ball
@@ -337,7 +339,6 @@ Spring* InSpring(Scene* scene, Vec2 pos)
 /// Create and link the ball @ scene->m_mouPos to the n nearest balls which are not too far (max_length)
 int connect_n(Scene* scene, int n, int max_length) {
     int ballCount = Scene_GetBallCount(scene);
-    Ball* balls = Scene_GetBalls(scene);
 
     if (n > ballCount) {
         Scene_CreateBall(scene, scene->m_mousePos);
@@ -353,7 +354,7 @@ int connect_n(Scene* scene, int n, int max_length) {
             Ball_Connect(ball_created, scene->m_queries[i].ball, 2.3f);
         }
     } else {
-        Ball *ball_created = Scene_CreateBall(scene, scene->m_mousePos);
+        Scene_CreateBall(scene, scene->m_mousePos);
     }
 
     if (n != scene->m_validCount) return EXIT_FAILURE;
