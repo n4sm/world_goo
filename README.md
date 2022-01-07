@@ -8,5 +8,5 @@
 
 # Run
 ```
-$ make run
+$ make -C TPfinS1_Basecode/SimplePhysicsEngine/SimplePhysicsEngine/ run
 ```
