@@ -55,7 +55,7 @@ typedef struct Ball_s
 /// @brief Initialise une balle et permet de définir sa position.
 /// @param[in] position le vecteur position de la balle.
 /// @return La balle initialisée.
-Ball Ball_Set(Vec2 position);
+Ball Ball_Set(Scene* scene, Vec2 position);
 
 /// @brief Lie deux balles avec un ressort dont la longueur au repos est spécifiée.
 /// @param[in,out] ball1 la première balle.
@@ -78,12 +78,12 @@ Vec2 Ball_GetPosition(Ball *ball);
 /// @brief Met à jour la vitesse d'une balle en fonction des forces qui lui sont appliquées.
 /// @param[in,out] ball la balle à mettre à jour.
 /// @param[in] timeStep le pas de temps.
-void Ball_UpdateVelocity(Ball *ball, float timeStep);
+void Ball_UpdateVelocity(Scene* scene, Ball *ball, float timeStep);
 
 /// @brief Met à jour la position d'une balle en fonction de sa vitesse.
 /// @param[in,out] ball la balle à mettre à jour.
 /// @param[in] timeStep le pas de temps.
-void Ball_UpdatePosition(Ball *ball, float timeStep);
+void Ball_UpdatePosition(Scene* Scene, Ball *ball, float timeStep);
 
 /// @brief Dessine une balle dans la scène.
 /// @param ball la balle à dessiner.

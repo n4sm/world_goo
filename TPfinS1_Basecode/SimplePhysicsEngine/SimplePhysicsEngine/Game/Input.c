@@ -45,6 +45,7 @@ void Input_Update(Input *input)
             break;
 
         case SDL_KEYDOWN:
+            input->isHit = true;
             if (evt.key.repeat)
                 break;
 
@@ -59,21 +60,64 @@ void Input_Update(Input *input)
                 break;
 
             case SDL_SCANCODE_D:
-                input->mouseDPressed = true;
+                input->keyStatus = SDL_SCANCODE_D;
                 break;
+
+            case SDL_SCANCODE_T:
+                input->keyStatus = SDL_SCANCODE_T;
+                break;
+
+            case SDL_SCANCODE_K:
+                input->keyStatus = SDL_SCANCODE_K;
+                break;
+
+            case SDL_SCANCODE_Z:
+                input->keyStatus = SDL_SCANCODE_Z;
+                break;
+
+            case SDL_SCANCODE_H:
+                input->keyStatus = SDL_SCANCODE_H;
+                break;
+            
+            case SDL_SCANCODE_N:
+                input->keyStatus = SDL_SCANCODE_N;
+                break;
+
             default:
                 break;
             }
             break;
 
         case SDL_KEYUP:
+            input->isHit = false;
             if (evt.key.repeat)
                 break;
 
+            //useless
             switch (evt.key.keysym.scancode)
             {
                 case SDL_SCANCODE_D:
-                    input->mouseDPressed = false;
+                    input->keyStatus = SDL_SCANCODE_D;
+                    break;
+
+                case SDL_SCANCODE_T:
+                    input->keyStatus = SDL_SCANCODE_T;
+                    break;
+
+                case SDL_SCANCODE_K:
+                    input->keyStatus = SDL_SCANCODE_K;
+                    break;
+
+                case SDL_SCANCODE_Z:
+                    input->keyStatus = SDL_SCANCODE_Z;
+                    break;
+
+                case SDL_SCANCODE_H:
+                    input->keyStatus = SDL_SCANCODE_H;
+                    break;
+
+                case SDL_SCANCODE_N:
+                    input->keyStatus = SDL_SCANCODE_N;
                     break;
 
                 default:
@@ -87,15 +131,22 @@ void Input_Update(Input *input)
             break;
 
         case SDL_MOUSEBUTTONDOWN:
+            input->isHit = true;
             switch (evt.button.button)
             {
             case SDL_BUTTON_LEFT:
                 input->mouseLDown = true;
                 input->mouseLPressed = true;
+
+                input->keyStatus = SDL_BUTTON_LEFT;
+
                 break;
             case SDL_BUTTON_RIGHT:
                 input->mouseRDown = true;
                 input->mouseRPressed = true;
+
+                input->keyStatus = SDL_BUTTON_RIGHT;
+
                 break;
             default:
                 break;
@@ -103,6 +154,7 @@ void Input_Update(Input *input)
             break;
 
         case SDL_MOUSEBUTTONUP:
+            input->isHit = false;
             switch (evt.button.button)
             {
             case SDL_BUTTON_LEFT:

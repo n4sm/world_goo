@@ -10,7 +10,10 @@ typedef struct Input_s
 
     bool mouseLPressed;
     bool mouseRPressed;
-    bool mouseDPressed;
+
+    _Bool isHit;
+    int keyStatus;
+
     bool mouseLDown;
     bool mouseRDown;
 

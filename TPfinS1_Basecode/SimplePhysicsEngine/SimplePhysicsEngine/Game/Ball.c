@@ -1,13 +1,14 @@
 ﻿#include "Ball.h"
 #include "Scene.h"
 
-Ball Ball_Set(Vec2 position)
+Ball Ball_Set(Scene* scene, Vec2 position)
 {
-    Ball ball = { 0 };//yes
+    Ball ball = { 0 };
 
     ball.position = position;
     ball.velocity = Vec2_Set(0.f, 0.f);
-    ball.mass = 0.4f;
+    ball.mass = scene->m_gameMode->mass;
+    ball.mass = 0.5;
     ball.friction = 0.5f;
 
     return ball;
@@ -76,24 +77,24 @@ Vec2 Ball_GetPosition(Ball *ball)
     return ball->position;
 }
 
-void Ball_UpdateVelocity(Ball *ball, float timeStep)
+void Ball_UpdateVelocity(Scene* scene, Ball *ball, float timeStep)
 {
     Vec2 spring = {0};
     for (int i = 0; i < ball->springCount; ++i) {
         spring = Vec2_Add(spring, Vec2_Scale(Vec2_Normalize(Vec2_Sub(ball->springs[i].other->position, ball->position)), 200 * (Vec2_Distance(ball->springs[i].other->position, ball->position) - ball->springs[i].length)));
     }
 
-    Vec2 sum = Vec2_Set(((-ball->friction * ball->velocity.x) + spring.x) / ball->mass, (spring.y + (-ball->friction * ball->velocity.y) + (ball->mass * -9.81f)) / ball->mass);
+    Vec2 sum = Vec2_Set(((-ball->friction * ball->velocity.x) + spring.x) / ball->mass, (spring.y + (-ball->friction * ball->velocity.y) + (ball->mass * scene->m_gameMode->gravity)) / ball->mass);
     Vec2 a = sum;
 
     ball->velocity.x += a.x * timeStep;
     ball->velocity.y += a.y * timeStep; 
 }
 
-void Ball_UpdatePosition(Ball *ball, float timeStep)
+void Ball_UpdatePosition(Scene* scene, Ball *ball, float timeStep)
 {
     if (ball->position.y + ball->velocity.y * timeStep <= 0) {
-        ball->velocity.y = Vec2_Scale(ball->velocity, -0.3f).y;
+        ball->velocity.y = Vec2_Scale(ball->velocity, scene->m_gameMode->rebond).y;
     }
 
     ball->position.x += ball->velocity.x * timeStep;

@@ -13,6 +13,14 @@
 #include "Textures.h"
 #include "Input.h"
 
+#define LUNE_GRAVITY_ACCELERATION 0.1f
+#define LUNE_MASS 0.5f
+#define LUNE_REBOND_COEFFICIENT 0.8f
+
+#define NOGRAV_GRAVITY_ACCELERATION 0.0f
+#define NOGRAV_MASS 0.1f
+#define NOGRAV_REBOND_COEFFICIENT 0.8f
+
 /// @brief Structure représentant le résultat d'une recherche de balle.
 typedef struct BallQuery_s
 {
@@ -24,6 +32,16 @@ typedef struct BallQuery_s
 } BallQuery;
 
 #define MAX_QUERY_COUNT 4
+
+typedef struct gameMode_s
+{
+    float mass;
+    float gravity;
+    float rebond;
+    _Bool isMoon;
+    _Bool isNoGrav;
+    _Bool isDefault;
+} gameMode_t;
 
 /// @brief Structure représentant la scène de la simulation.
 /// Elle contient la caméra par laquelle la scène est vue ainsi que toutes les balles.
@@ -68,6 +86,18 @@ typedef struct Scene_s
 
     /// Distance maximale
     float m_maxDistance;
+
+    /// Nouvelle coordonnée
+    _Bool m_toMove;
+
+    /// ball we have to move
+    Ball* m_ballToMove;
+
+    /// pointer toward the gameMode structure holding some values to describre the physics
+    gameMode_t* m_gameMode;
+
+    /// flusher 
+    unsigned long flusher;
 } Scene;
 
 /// @brief Construit une scène.

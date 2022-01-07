@@ -6,6 +6,14 @@
 
 int Scene_DoubleCapacity(Scene *scene);
 
+/// default values for the physics
+void setDefault(Scene* scene) {
+    scene->m_gameMode->gravity = -9.81f;
+    scene->m_gameMode->rebond = -0.8f;
+    scene->m_gameMode->mass = 0.5;
+    scene->m_gameMode->isMoon = false;
+}
+
 Scene *Scene_New(Renderer *renderer, int max_connections, float maxDistance)
 {
     Scene *scene = NULL;
@@ -30,6 +38,7 @@ Scene *Scene_New(Renderer *renderer, int max_connections, float maxDistance)
     if (!scene->m_balls) goto ERROR_LABEL;
 
     scene->m_queries = calloc(max_connections, sizeof(BallQuery));
+    scene->m_gameMode = (gameMode_t *)calloc(1, sizeof(gameMode_t));
 
     scene->m_renderer = renderer;
     scene->m_ballCount = 0;
@@ -37,6 +46,9 @@ Scene *Scene_New(Renderer *renderer, int max_connections, float maxDistance)
     scene->m_timeStep = 1.0f / 100.f;
     scene->m_maxBalls = max_connections;
     scene->m_maxDistance = maxDistance;
+
+    setDefault(scene);
+    scene->flusher = 0;
 
     // Création d'une scène minimale avec trois balles reliées
     Ball *ball1 = Scene_CreateBall(scene, Vec2_Set(-0.75f, 0.0f));
@@ -50,6 +62,8 @@ Scene *Scene_New(Renderer *renderer, int max_connections, float maxDistance)
     Ball_Connect(ball4, ball3, 1.5f);
     Ball_Connect(ball5, ball3, 1.5f);
     Ball_Connect(ball4, ball5, 1.5f);
+
+    // ball3->position = Vec2_Set(3.0f, 3.0f);
 
     return scene;
 
@@ -72,7 +86,6 @@ void Scene_Free(Scene *scene)
     {
         free(scene->m_balls);
     }
-
 
     memset(scene, 0, sizeof(Scene));
     free(scene);
@@ -127,7 +140,7 @@ Ball *Scene_CreateBall(Scene *scene, Vec2 position)
     Ball *ball = &scene->m_balls[scene->m_ballCount];
     scene->m_ballCount++;
 
-    *ball = Ball_Set(position);
+    *ball = Ball_Set(scene, position);
 
     return ball;
 
@@ -227,9 +240,11 @@ void BubbleSortBalls(Ball* balls, int ballCount, Vec2 pos)
     BubbleSortBalls(balls, ballCount - 1, pos);
 }
 
+/// are v1 and v1 too far from each other
 _Bool isValidLength(Scene* scene, Vec2 v1, Vec2 v2) {
     return Vec2_Distance(v1, v2) < scene->m_maxDistance ? true : false;
 }
+
 
 int Scene_GetNearestBalls(Scene *scene, Vec2 position, BallQuery *queries, int queryCount)
 {
@@ -242,35 +257,47 @@ int Scene_GetNearestBalls(Scene *scene, Vec2 position, BallQuery *queries, int q
     memcpy(saved, balls, ballCount * sizeof(Ball));
     BubbleSortBalls(saved, ballCount, position);
 
+    scene->m_validCount = 0;
     for (int i = 0; i < queryCount; i++) {
         for (int k = 0; k < ballCount; ++k) {
-            printf("%f == %f, %f == %f\n", saved[i].position.x, balls[k].position.x, saved[i].position.y, balls[k].position.y);
-            if (saved[i].position.x == balls[k].position.x && saved[i].position.y == balls[k].position.y) {
+            if (saved[i].position.x == balls[k].position.x && saved[i].position.y == balls[k].position.y && isValidLength(scene, balls[k].position, position)) {
                 queries[i].ball = &balls[k];
-                queries[i].distance = Vec2_Distance(queries[i].ball->position, position);                
+                queries[i].distance = Vec2_Distance(queries[i].ball->position, position);
+                assert(isValidLength(scene, balls[k].position, position));
+                scene->m_validCount++;
             }
         }
-
-        printf("%p\n", queries[i].ball);
     }
 
-    scene->m_validCount = ValidBalls(scene, scene->m_queries, scene->m_mousePos, 10);
+    if (scene->m_validCount != queryCount) return EXIT_FAILURE;
 
     free(saved);
     return EXIT_SUCCESS;
 }
 
+
+/// deletes the ball right next to pos
 int mayDeleteBall(Scene* scene, Vec2 pos)
 {
     if (EXIT_FAILURE == Scene_GetNearestBalls(scene, pos, scene->m_queries, 1)) {
-        exit(EXIT_FAILURE);
+        return 0;
     }
 
     if (Vec2_Distance(scene->m_queries[0].ball->position, pos) < 0.2f) {
         for (int i = 0; i < scene->m_queries[0].ball->springCount; ++i) Ball_Deconnect(scene->m_queries[0].ball, scene->m_queries[0].ball->springs[i].other);
         Scene_RemoveBall(scene, scene->m_queries[0].ball);
     }
+}
 
+/// checks if we have to move or not the ball
+int mayMoveBall(Scene* scene, Vec2 pos)
+{
+    if (Vec2_Distance(scene->m_ballToMove->position, pos) > 0.2f) {
+        scene->m_ballToMove->position = pos;
+        return EXIT_SUCCESS;
+    }
+
+    return EXIT_FAILURE;
 }
 
 void Scene_FixedUpdate(Scene *scene, float timeStep)
@@ -280,18 +307,18 @@ void Scene_FixedUpdate(Scene *scene, float timeStep)
 
     for (int i = 0; i < ballCount; i++)
     {
-        Ball_UpdateVelocity(&balls[i], timeStep);
+        Ball_UpdateVelocity(scene, &balls[i], timeStep);
     }
     for (int i = 0; i < ballCount; i++)
     {
-        Ball_UpdatePosition(&balls[i], timeStep);
+        Ball_UpdatePosition(scene, &balls[i], timeStep);
     }
 }
 
-void print_ball(Ball* ball) {
-    fprintf(stdout, "ball.position.x / y: %f / %f, ball.velocity.x / y: %f / %f, ball.friction: %f, mass: %f\n"
-                    , ball->position.x, ball->position.y, ball->velocity.x, ball->velocity.y, ball->friction, ball->mass);
-}
+// void print_ball(Ball* ball) {
+//     fprintf(stdout, "ball.position.x / y: %f / %f, ball.velocity.x / y: %f / %f, ball.friction: %f, mass: %f\n"
+//                     , ball->position.x, ball->position.y, ball->velocity.x, ball->velocity.y, ball->friction, ball->mass);
+// }
 
 Spring* InSpring(Scene* scene, Vec2 pos)
 {
@@ -307,46 +334,49 @@ Spring* InSpring(Scene* scene, Vec2 pos)
     return (void* )-1;
 }
 
+/// Create and link the ball @ scene->m_mouPos to the n nearest balls which are not too far (max_length)
 int connect_n(Scene* scene, int n, int max_length) {
     int ballCount = Scene_GetBallCount(scene);
     Ball* balls = Scene_GetBalls(scene);
-    _Bool is_connected = false;
 
-    if (n > ballCount || n < 0 || n > ballCount) {
+    if (n > ballCount) {
+        Scene_CreateBall(scene, scene->m_mousePos);
         return EXIT_FAILURE;
     }
 
-    if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, n)) {
-        perror("failed to connect balls :(");
-        exit(EXIT_FAILURE);
-    }
+    Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, n);
 
-    Ball *ball_created = Scene_CreateBall(scene, scene->m_mousePos);
+    if (scene->m_validCount) {
+        Ball *ball_created = Scene_CreateBall(scene, scene->m_mousePos);
 
-    puts("=======");
-
-    for (size_t i = 0; i < n; i++) {
-        print_ball(ball_created);
-        print_ball(scene->m_queries[i].ball);
-        if (scene->m_queries[i].distance < max_length) {
-            Ball_Connect(ball_created, scene->m_queries[i].ball, 3.5 + 0.2 * Vec2_Distance(scene->m_mousePos, scene->m_queries[i].ball->position));
-            is_connected = true;
-        } else if (!is_connected) {
-            Scene_RemoveBall(scene, ball_created);
+        for (size_t i = 0; i < scene->m_validCount; i++) {
+            Ball_Connect(ball_created, scene->m_queries[i].ball, 2.3f);
         }
+    } else {
+        Ball *ball_created = Scene_CreateBall(scene, scene->m_mousePos);
     }
+
+    if (n != scene->m_validCount) return EXIT_FAILURE;
 
     return EXIT_SUCCESS;
 }
 
-int ValidBalls(Scene* scene, BallQuery* queries, Vec2 pos, int n)
-{
-    for (size_t i = 0; i < n; i++) {
-        if (!queries[i].ball || !isValidLength(scene, pos, queries[i].ball->position)) return i;
-    }
+// Some mode
 
-    return n;
+void luneMode(Scene* scene) {
+    scene->m_gameMode->gravity = LUNE_GRAVITY_ACCELERATION;
+    scene->m_gameMode->mass = LUNE_MASS;
+    scene->m_gameMode->rebond = LUNE_REBOND_COEFFICIENT;
 }
+
+void noGrav(Scene* scene) {
+    scene->m_gameMode->gravity = NOGRAV_GRAVITY_ACCELERATION;
+    scene->m_gameMode->mass = NOGRAV_MASS;
+    scene->m_gameMode->rebond = NOGRAV_REBOND_COEFFICIENT;
+
+    scene->m_gameMode->isNoGrav = true;
+}
+
 
 void Scene_UpdateGame(Scene *scene)
 {
@@ -378,13 +408,66 @@ void Scene_UpdateGame(Scene *scene)
 
     memset(scene->m_queries, 0x0, sizeof(BallQuery) * scene->m_maxBalls);
 
-    // click detected
-    if (scene->m_input->mouseLPressed && scene->m_mousePos.y > 0.0f) {
-        connect_n(scene, 3, scene->m_maxDistance);
-    } else if (scene->m_input->mouseDPressed) {
-        mayDeleteBall(scene, scene->m_mousePos);
-    } else if (EXIT_FAILURE == Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, 3)) {
-        exit(-1);
+    if (scene->m_gameMode->isDefault) {
+        setDefault(scene);
+    }
+
+    /// If a key / button is hit
+    if (scene->m_input->isHit) {
+        switch (scene->m_input->keyStatus) {
+            /// Is it a left click (create and link a ball)
+            case SDL_BUTTON_LEFT:
+                if (scene->m_mousePos.y > 0.0f && scene->flusher > 3) {
+                    connect_n(scene, 3, scene->m_maxDistance);
+                    scene->flusher = 0;
+                } else {
+                    scene->flusher++;
+                }
+                break;
+
+            /// Delete ball
+            case SDL_SCANCODE_D:
+                mayDeleteBall(scene, scene->m_mousePos);
+                break;
+
+            /// teleport the ball
+            case SDL_SCANCODE_T:
+                if (scene->m_toMove && Vec2_Distance(scene->m_mousePos, scene->m_ballToMove->position) < 0.2f) {
+                    return;
+                } else if (scene->m_toMove) {
+                    mayMoveBall(scene, scene->m_mousePos);
+                    scene->m_toMove = false;
+                } else if (!scene->m_toMove) {
+                    if (EXIT_FAILURE != Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, 1) && Vec2_Distance(scene->m_mousePos, scene->m_queries[0].ball->position) < 0.2f) scene->m_ballToMove = scene->m_queries[0].ball;
+
+                    scene->m_toMove = true;
+                }
+                break;
+
+            /// Moon mode
+            case SDL_SCANCODE_K:
+                if (!scene->m_gameMode->isMoon) {
+                    luneMode(scene);
+                }
+                break;
+
+            /// Default settings
+            case SDL_SCANCODE_H:
+                setDefault(scene);
+                break;
+
+            /// No gravity mode
+            case SDL_SCANCODE_N:
+                if (!scene->m_gameMode->isNoGrav) {
+                    noGrav(scene);
+                }
+
+            default:
+                break;
+        }
+    } else {
+        /// Call Scene_GetNearestBalls to update scene->m_validCount
+        Scene_GetNearestBalls(scene, scene->m_mousePos, scene->m_queries, 3);
     }
 }
 
@@ -470,7 +553,6 @@ void Scene_Render(Scene *scene)
         // Dessine les ressorts inactifs
         int validCount = scene->m_validCount;
         BallQuery *queries = scene->m_queries;
-        printf("valdCount: %d\n", scene->m_validCount);
         for (int i = 0; i < validCount; ++i)
         {
             Vec2 start = Scene_GetMousePosition(scene);
